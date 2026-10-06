@@ -22,34 +22,52 @@ export function saveSimulationState(simState) {
 // SYSTEM FETCHERS
 // ------------------------------------------------------------------
 
+function getLocalFallback(table) {
+  const raw = localStorage.getItem("sat_db_" + table);
+  if (raw) {
+    try { return JSON.parse(raw); } catch { /* ignore */ }
+  }
+  return [];
+}
+
 export async function fetchUsers() {
   const { data, error } = await supabase.from('users').select('*');
-  if (error) console.error("Error fetching users:", error);
-  return data || [];
+  if (error || !data || data.length === 0) {
+    return getLocalFallback('users');
+  }
+  return data;
 }
 
 export async function fetchSubjects() {
   const { data, error } = await supabase.from('subjects').select('*');
-  if (error) console.error("Error fetching subjects:", error);
-  return data || [];
+  if (error || !data || data.length === 0) {
+    return getLocalFallback('subjects');
+  }
+  return data;
 }
 
 export async function fetchSessions() {
   const { data, error } = await supabase.from('sessions').select('*');
-  if (error) console.error("Error fetching sessions:", error);
-  return data || [];
+  if (error || !data) {
+    return getLocalFallback('sessions');
+  }
+  return data;
 }
 
 export async function fetchAttendance() {
   const { data, error } = await supabase.from('attendance').select('*').order('timestamp', { ascending: false });
-  if (error) console.error("Error fetching attendance:", error);
-  return data || [];
+  if (error || !data) {
+    return getLocalFallback('attendance');
+  }
+  return data;
 }
 
 export async function fetchAuditLogs() {
   const { data, error } = await supabase.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(200);
-  if (error) console.error("Error fetching audit logs:", error);
-  return data || [];
+  if (error || !data) {
+    return getLocalFallback('audit_logs');
+  }
+  return data;
 }
 
 // ------------------------------------------------------------------
