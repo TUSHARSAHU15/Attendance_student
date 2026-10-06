@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  @apply bg-slate-100 text-slate-800 dark:bg-zinc-950 dark:text-zinc-50 transition-colors duration-200;
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(14, 91, 158, 0.24), transparent 34rem),
+    radial-gradient(circle at 84% 18%, rgba(16, 185, 129, 0.2), transparent 30rem),
+    radial-gradient(circle at 50% 82%, rgba(244, 63, 94, 0.13), transparent 28rem),
+    linear-gradient(135deg, #f8fafc 0%, #e0f2fe 45%, #ecfdf5 100%);
+}
+
+.dark body::before {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(14, 165, 233, 0.2), transparent 30rem),
+    radial-gradient(circle at 86% 10%, rgba(16, 185, 129, 0.14), transparent 32rem),
+    radial-gradient(circle at 45% 90%, rgba(244, 63, 94, 0.1), transparent 28rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 48%, #052e2b 100%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 75%);
+}
+
+.dark body::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+}
+
+/* JUNO Brand Layout Themes */
+.juno-header {
+  @apply bg-[#0e5b9e]/80 text-white border-b border-white/20 shadow-lg shadow-sky-950/10 backdrop-blur-2xl;
+}
+
+.juno-sub-header {
+  @apply bg-white/45 border-b border-white/45 dark:bg-zinc-950/35 dark:border-white/10 text-zinc-700 dark:text-zinc-200 backdrop-blur-2xl shadow-sm;
+}
+
+.juno-card {
+  @apply bg-white/58 border border-white/65 dark:bg-zinc-950/42 dark:border-white/10 rounded-2xl p-5 shadow-xl shadow-slate-900/5 dark:shadow-black/25 backdrop-blur-2xl transition-all duration-200;
+}
+
+.juno-card:hover {
+  @apply border-white/85 dark:border-white/15 shadow-2xl shadow-slate-900/10 dark:shadow-black/30;
+}
+
+.juno-btn-primary {
+  @apply bg-[#0e5b9e]/90 hover:bg-[#004b87] text-white px-5 py-1.5 rounded-full text-xs font-semibold shadow-lg shadow-sky-900/15 cursor-pointer transition duration-150 inline-flex items-center justify-center gap-1.5 border border-white/20 backdrop-blur-xl;
+}
+
+.juno-btn-secondary {
+  @apply bg-white/45 hover:bg-white/70 text-[#0e5b9e] border border-[#0e5b9e]/25 dark:bg-white/5 dark:text-emerald-300 dark:border-emerald-400/20 px-5 py-1.5 rounded-full text-xs font-semibold shadow-sm cursor-pointer transition duration-150 inline-flex items-center justify-center gap-1.5 backdrop-blur-xl;
+}
+
+.glass {
+  @apply bg-white/55 border border-white/70 dark:bg-zinc-950/45 dark:border-white/10 backdrop-blur-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/30;
+}
+
+.glass-panel {
+  @apply bg-white/35 border border-white/50 dark:bg-white/5 dark:border-white/10 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/20;
+}
+
+.glass-emerald {
+  @apply bg-emerald-400/12 border border-emerald-400/25 backdrop-blur-xl;
+}
+
+.glass-rose {
+  @apply bg-rose-400/12 border border-rose-400/25 backdrop-blur-xl;
+}
+
+input,
+select,
+textarea {
+  @apply backdrop-blur-xl;
+}
+
+/* Keyframes and Animations */
+@keyframes scan {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(220px);
+  }
+}
+
+.animate-scan-line {
+  animation: scan 2.5s ease-in-out infinite;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-zinc-50 dark:bg-zinc-950;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-200 dark:bg-zinc-800 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-zinc-300 dark:bg-zinc-700;
+}
