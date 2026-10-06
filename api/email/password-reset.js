@@ -90,10 +90,13 @@ export default async function handler(req, res) {
         .eq('email', email.toLowerCase());
 
       // Insert new token
+      const resetId = 'rst_' + crypto.randomUUID().replace(/-/g, '');
       const { error: insertError } = await supabase
         .from('password_resets')
         .insert([{
+          id: resetId,
           email: email.toLowerCase(),
+          token: rawToken,
           token_hash: tokenHash,
           expires_at: expiresAt,
           used: false,
