@@ -8,9 +8,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email configuration
 const EMAIL_CONFIG = {
-  from: process.env.EMAIL_FROM || 'SecureAttendance <noreply@yourdomain.com>',
-  appName: process.env.EMAIL_APP_NAME || 'SecureAttendance',
-  appUrl: process.env.EMAIL_APP_URL || 'http://localhost:5173',
+  from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+  appName: process.env.EMAIL_APP_NAME || 'Secure Attendance',
+  appUrl: process.env.EMAIL_APP_URL || 'https://attendance-jet-beta.vercel.app',
 };
 
 /**
@@ -57,7 +57,7 @@ async function sendEmail({ to, subject, html, text }) {
  * @returns {Promise<Object>}
  */
 export async function sendPasswordResetEmail({ email, name, token }) {
-  const resetUrl = `${EMAIL_CONFIG.appUrl}/reset-password?token=${token}`;
+  const resetUrl = `${EMAIL_CONFIG.appUrl}/?token=${token}`;
   const { subject, html, text } = passwordResetTemplate({
     name,
     resetUrl,
