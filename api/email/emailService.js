@@ -9,8 +9,10 @@ const resendApiKey = process.env.RESEND_API_KEY || defaultKey;
 const resend = new Resend(resendApiKey);
 
 // Optional SMTP (e.g. Gmail App Password for sending to ANY email without custom domain)
-const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
-const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+const defaultSmtpUser = 'tusharsahu1511@gmail.com';
+const defaultSmtpPass = Buffer.from('aHRjaW9raW5hZmpjeGpzd3==', 'base64').toString('utf8'); // App password: htci okin afjc xjsw
+const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || defaultSmtpUser;
+const smtpPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || defaultSmtpPass).replace(/\s+/g, '');
 let smtpTransporter = null;
 if (smtpUser && smtpPass) {
   smtpTransporter = nodemailer.createTransport({
