@@ -129,21 +129,27 @@ export default function ForgotPassword({ onBack }) {
               </p>
             </div>
 
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-left text-xs text-amber-900 dark:text-amber-200 space-y-1 shadow-sm">
+              <div className="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                <span>⚠️</span> Check your Spam / Junk folder!
+              </div>
+              <p className="leading-relaxed text-[11.5px]">
+                Because this is an automated password reset email, <strong>Gmail</strong> and college email servers (such as <strong>bitmesra.ac.in</strong>) routinely filter it into your <strong>Spam / Junk</strong> folder or <strong>Promotions</strong> tab. If you don't see it in your primary inbox, please look in <strong>Spam</strong>.
+              </p>
+            </div>
+
             <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 space-y-2 text-left leading-relaxed">
               <div className="flex items-start gap-2">
                 <span className="text-emerald-500 font-bold">1.</span>
-                <span>Open your Gmail / email inbox.</span>
+                <span>Open your Gmail or college webmail.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-emerald-500 font-bold">2.</span>
-                <span>Open the email with subject <strong>"Reset your Secure Attendance password"</strong>.</span>
+                <span>Look in your <strong>Spam / Junk</strong> folder or Inbox for sender <strong>"Secure Attendance"</strong>.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-emerald-500 font-bold">3.</span>
                 <span>Click the <strong>Reset Password</strong> button inside the email to set your new password.</span>
-              </div>
-              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 text-[11px] text-slate-400">
-                💡 Don't see it? Please check your <strong>Spam / Junk</strong> folder.
               </div>
             </div>
 
