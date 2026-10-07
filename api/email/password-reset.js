@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     // Generate secure token
     const rawToken = generateSecureToken();
     const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour (BIGINT timestamp)
 
     // Store token hash in database
     if (supabase) {
