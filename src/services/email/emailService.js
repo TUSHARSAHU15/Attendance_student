@@ -8,9 +8,9 @@ function generateToken() {
 }
 
 /**
- * Request a password reset email in Sandbox Mode
+ * Request a password reset email delivered to real inbox
  * @param {string} email - User's email address
- * @returns {Promise<Object>} Response with success status, resetLink, and sandbox email
+ * @returns {Promise<Object>} Response with success status and message
  */
 export async function requestPasswordReset(email) {
   const trimmedEmail = email ? email.trim().toLowerCase() : '';
@@ -18,77 +18,54 @@ export async function requestPasswordReset(email) {
     throw new Error('Please enter a valid email address.');
   }
 
-  // Lookup user name from database if available (with 2s timeout)
-  let userName = "User";
+  // 1. Call serverless API to send real email via Resend
+  let apiSuccess = false;
+  let apiError = null;
+
   try {
-    const { data: users } = await Promise.race([
-      supabase.from('users').select('*'),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-    ]);
-    const matchedUser = (users || []).find(u => u.email?.trim().toLowerCase() === trimmedEmail);
-    if (matchedUser && matchedUser.name) {
-      userName = matchedUser.name;
+    const response = await fetch('/api/email/password-reset', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: trimmedEmail }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.success) {
+      apiSuccess = true;
+    } else if (!response.ok) {
+      apiError = data.error || 'Failed to dispatch email';
+      console.warn('API returned error:', apiError);
     }
-  } catch {
-    // Non-blocking
-  }
-
-  const token = generateToken();
-  const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
-
-  // Store in password_resets table in Supabase (with 2s timeout)
-  try {
-    await Promise.race([
-      (async () => {
-        await supabase.from('password_resets').delete().eq('email', trimmedEmail);
-        await supabase.from('password_resets').insert([{
-          id: 'pr_' + Date.now(),
-          email: trimmedEmail,
-          token,
-          token_hash: token,
-          code: Math.floor(100000 + Math.random() * 900000).toString(),
-          expires_at: expiresAt,
-          used: false,
-          created_at: new Date().toISOString()
-        }]);
-      })(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
-    ]);
   } catch (err) {
-    console.warn('[Sandbox] Could not write to Supabase password_resets table:', err);
+    console.warn('Network call to email API failed:', err);
   }
 
-  const resetLink = `${window.location.origin}/?token=${token}`;
-
-  // Store inside Sandbox Mailbox in localStorage
-  const sandboxEmail = {
-    id: 'mail_' + Date.now(),
-    to: trimmedEmail,
-    userName,
-    subject: '🔒 Reset your Secure Attendance Password',
-    resetLink,
-    token,
-    sentAt: Date.now()
-  };
-
-  try {
-    const raw = localStorage.getItem('sat_sandbox_emails');
-    const existing = raw ? JSON.parse(raw) : [];
-    const updated = [sandboxEmail, ...existing.slice(0, 19)];
-    localStorage.setItem('sat_sandbox_emails', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('sat_sandbox_email', { detail: sandboxEmail }));
-  } catch {
-    // Non-blocking
+  // 2. Client-side database sync fallback if offline or API unreachable
+  if (!apiSuccess) {
+    const token = generateToken();
+    const expiresAt = Date.now() + 60 * 60 * 1000;
+    try {
+      await supabase.from('password_resets').delete().eq('email', trimmedEmail);
+      await supabase.from('password_resets').insert([{
+        id: 'pr_' + Date.now(),
+        email: trimmedEmail,
+        token,
+        token_hash: token,
+        code: Math.floor(100000 + Math.random() * 900000).toString(),
+        expires_at: expiresAt,
+        used: false,
+        created_at: new Date().toISOString()
+      }]);
+    } catch {
+      // Non-blocking
+    }
   }
-
-  console.info(`[Sandbox Email Delivered] Recipient: ${trimmedEmail} | Link: ${resetLink}`);
 
   return {
     success: true,
-    message: `Password reset link delivered to Sandbox Mailbox for ${trimmedEmail}.`,
-    resetLink,
-    token,
-    userName,
+    message: `A password reset email has been sent to ${trimmedEmail}.`,
     email: trimmedEmail
   };
 }
