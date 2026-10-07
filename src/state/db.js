@@ -51,7 +51,10 @@ export async function fetchSessions() {
   if (error || !data) {
     return getLocalFallback('sessions');
   }
-  return data;
+  return data.map(s => ({
+    ...s,
+    teacherId: s.teacherId || s.createdBy
+  }));
 }
 
 export async function fetchAttendance() {
@@ -471,8 +474,24 @@ export async function startTeacherSession(teacherId, subjectId) {
     createdAt: Date.now() + (sim.timeOffsetSeconds * 1000)
   };
 
-  const { error } = await supabase.from('sessions').insert([newSession]);
-  if (error) return { success: false, message: "Failed to start session." };
+  let { error } = await supabase.from('sessions').insert([newSession]);
+
+  // Fallback if database table was created with 'createdBy' instead of 'teacherId'
+  if (error && (error.message?.includes('teacherId') || error.code === 'PGRST204')) {
+    const fallbackSession = {
+      id: newSession.id,
+      subjectId: newSession.subjectId,
+      createdBy: teacherId,
+      createdAt: newSession.createdAt
+    };
+    const fallbackResult = await supabase.from('sessions').insert([fallbackSession]);
+    error = fallbackResult.error;
+  }
+
+  if (error) {
+    console.error("Failed to insert session:", error);
+    return { success: false, message: error.message || "Failed to start session." };
+  }
 
   await writeAuditLog("INFO", `Attendance Session Started`, `Session ID: ${newSession.id}`);
   return { success: true, session: newSession };

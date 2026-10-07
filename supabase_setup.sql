@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.subjects (
 CREATE TABLE IF NOT EXISTS public.sessions (
   id TEXT PRIMARY KEY,
   "subjectId" TEXT NOT NULL,
+  "teacherId" TEXT,
   "createdBy" TEXT,
   "createdAt" BIGINT,
   active BOOLEAN DEFAULT TRUE

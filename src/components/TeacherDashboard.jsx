@@ -40,8 +40,9 @@ export default function TeacherDashboard({ user, onTriggerRefresh, triggerRefres
     loadAllData();
   }, [triggerRefresh]);
 
-  const subjects = data.subjects.filter(s => s.teacherId === user.id);
-  const activeSession = data.sessions.find(s => s.teacherId === user.id) || null;
+  // All subjects are accessible to all instructors for attendance broadcasting
+  const subjects = data.subjects;
+  const activeSession = data.sessions.find(s => (s.teacherId === user.id || s.createdBy === user.id)) || null;
   const sessionEnrolledStudents = data.users.filter(u => u.role === "student");
   const attendanceRecords = activeSession
     ? data.attendance.filter(a => a.sessionId === activeSession.id)
@@ -273,11 +274,15 @@ export default function TeacherDashboard({ user, onTriggerRefresh, triggerRefres
                       onChange={(e) => setSelectedSubjectId(e.target.value)}
                       className="w-full bg-slate-50 border border-zinc-300 dark:bg-zinc-950/80 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0e5b9e] dark:focus:border-emerald-500 cursor-pointer"
                     >
-                      {subjects.map(s => (
-                        <option key={s.id} value={s.id} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
-                          {s.id} - {s.name}
-                        </option>
-                      ))}
+                      {subjects.length === 0 ? (
+                        <option value="" disabled>No subjects available</option>
+                      ) : (
+                        subjects.map(s => (
+                          <option key={s.id} value={s.id} className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+                            {s.id} - {s.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
