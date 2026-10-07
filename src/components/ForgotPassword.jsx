@@ -34,6 +34,8 @@ export default function ForgotPassword({ onBack }) {
     }
   };
 
+  const [copied, setCopied] = useState(false);
+
   return (
     <div className="min-h-[90svh] flex flex-col justify-center items-center py-10 px-4">
       <div className="text-center mb-8 max-w-lg">
@@ -53,7 +55,7 @@ export default function ForgotPassword({ onBack }) {
                 Forgot Password
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Enter your email and we'll send you a reset link
+                Enter your email to receive a secure reset link (Sandbox Mailbox)
               </p>
             </div>
 
@@ -74,7 +76,7 @@ export default function ForgotPassword({ onBack }) {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@college.edu"
+                    placeholder="you@college.edu or gmail"
                     className="w-full pl-10 pr-3 py-2.5 bg-white/45 border border-white/60 dark:bg-white/5 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -94,7 +96,7 @@ export default function ForgotPassword({ onBack }) {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Generating link...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Preparing Sandbox Link...
                   </>
                 ) : (
                   "Send Reset Link"
@@ -115,31 +117,78 @@ export default function ForgotPassword({ onBack }) {
         )}
 
         {step === "verify" && (
-          <>
+          <div className="space-y-4 animate-fade-in">
             <div className="text-center">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full text-[11px] font-semibold mb-2">
+                <span>📬 Sandbox Mailbox (1 New Message)</span>
+              </div>
               <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200">
-                Password Reset Link Ready
+                Email Delivered
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                A secure reset link has been prepared for <span className="font-semibold">{email}</span>.
+                A password reset email has been sent for <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>
               </p>
             </div>
 
-            {resetLink && (
-              <div className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 space-y-2">
-                <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                  <span>Direct Reset Link:</span>
+            {/* Simulated Email Envelope */}
+            <div className="bg-slate-50/80 dark:bg-slate-950/70 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-xs space-y-3 shadow-inner">
+              <div className="space-y-1 pb-2.5 border-b border-zinc-200 dark:border-zinc-800 text-[11px]">
+                <div className="flex justify-between text-slate-500">
+                  <span>From:</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">no-reply@college.edu</span>
                 </div>
+                <div className="flex justify-between text-slate-500">
+                  <span>To:</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">{email}</span>
+                </div>
+                <div className="flex justify-between text-slate-500">
+                  <span>Subject:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">🔒 Reset your Secure Attendance Password</span>
+                </div>
+              </div>
+
+              <div className="text-slate-650 dark:text-slate-300 space-y-1.5 leading-relaxed text-xs">
+                <p>Hello,</p>
+                <p>
+                  We received a request to reset your password. Click the button below to be redirected directly to the reset password page. This link will expire in 1 hour.
+                </p>
+              </div>
+
+              {/* Direct Redirect Button */}
+              <div className="pt-2">
                 <a
                   href={resetLink}
-                  className="inline-flex items-center gap-1.5 text-xs text-[#0e5b9e] dark:text-emerald-400 hover:underline font-mono break-all font-medium"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-md shadow-emerald-900/20 transition cursor-pointer text-center"
                 >
-                  Open Password Reset Page <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  <span>👉 Click Here to Reset Password</span>
+                  <ExternalLink className="h-4 w-4" />
                 </a>
               </div>
-            )}
 
-            <div className="space-y-3 pt-2">
+              {/* Copy URL helper */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={resetLink}
+                  className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-2.5 py-1.5 text-[10px] font-mono text-slate-500 truncate"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(resetLink);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition shrink-0"
+                >
+                  {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                  <span>{copied ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
               <button
                 onClick={() => setStep("request")}
                 disabled={isSubmitting}
@@ -152,13 +201,13 @@ export default function ForgotPassword({ onBack }) {
                 <button
                   type="button"
                   onClick={onBack}
-                  className="w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:underline flex items-center justify-center gap-1 cursor-pointer"
+                  className="w-full text-center text-xs text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:underline flex items-center justify-center gap-1 cursor-pointer pt-1"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Sign In
                 </button>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

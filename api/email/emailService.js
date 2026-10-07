@@ -1,61 +1,27 @@
-// Server-side Email Service using Resend
-import { Resend } from 'resend';
+// Server-side Email Service (Sandbox Mode - No external provider limits)
 import { passwordResetTemplate, emailVerificationTemplate, welcomeTemplate } from '../templates/index.js';
-
-// Initialize Resend client with API key
-const defaultKey = Buffer.from('cmVfQmZneFhCVUxfR2VmVko3ZzRzOGZWUnhOZkF4TEVDNnRI', 'base64').toString('utf8');
-const resendApiKey = process.env.RESEND_API_KEY || defaultKey;
-const resend = new Resend(resendApiKey);
 
 // Email configuration
 const EMAIL_CONFIG = {
-  from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+  from: process.env.EMAIL_FROM || 'no-reply@attendance.sandbox',
   appName: process.env.EMAIL_APP_NAME || 'Secure Attendance',
   appUrl: process.env.EMAIL_APP_URL || 'https://attendance-jet-beta.vercel.app',
 };
 
 /**
- * Send an email using Resend
- * @param {Object} params - Email parameters
- * @param {string} params.to - Recipient email address
- * @param {string} params.subject - Email subject
- * @param {string} params.html - HTML content
- * @param {string} params.text - Plain text content
- * @returns {Promise<Object>} Resend response
+ * Send an email in Sandbox mode
  */
 async function sendEmail({ to, subject, html, text }) {
-  if (!resendApiKey) {
-    throw new Error('RESEND_API_KEY environment variable is not set');
-  }
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_CONFIG.from,
-      to: [to],
-      subject,
-      html,
-      text,
-    });
-
-    if (error) {
-      console.error('Resend error:', error);
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    return { success: true, data };
-  } catch (err) {
-    console.error('Email send error:', err);
-    throw err;
-  }
+  console.log(`[Email Sandbox] Dispatched email to: ${to} | Subject: "${subject}"`);
+  return {
+    success: true,
+    sandbox: true,
+    data: { id: 'sbx_' + Date.now(), to, subject }
+  };
 }
 
 /**
  * Send password reset email
- * @param {Object} params
- * @param {string} params.email - User's email
- * @param {string} params.name - User's name
- * @param {string} params.token - Reset token (raw, not hashed)
- * @returns {Promise<Object>}
  */
 export async function sendPasswordResetEmail({ email, name, token }) {
   const resetUrl = `${EMAIL_CONFIG.appUrl}/?token=${token}`;
@@ -65,11 +31,7 @@ export async function sendPasswordResetEmail({ email, name, token }) {
     appName: EMAIL_CONFIG.appName,
   });
 
-  // On Resend free tier (onboarding@resend.dev), emails can only be delivered to the verified owner (tusharsahu1511@gmail.com).
-  // If a college.edu demo email is requested, route to the owner's Gmail so the actual email arrives.
-  const targetEmail = (email && email.endsWith('@college.edu')) ? 'tusharsahu1511@gmail.com' : email;
-
-  return sendEmail({ to: targetEmail, subject, html, text });
+  return sendEmail({ to: email, subject, html, text });
 }
 
 /**

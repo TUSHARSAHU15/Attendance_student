@@ -8,59 +8,80 @@ function generateToken() {
 }
 
 /**
- * Request a password reset email
+ * Request a password reset email in Sandbox Mode
  * @param {string} email - User's email address
- * @returns {Promise<Object>} Response with success status and message
+ * @returns {Promise<Object>} Response with success status, resetLink, and sandbox email
  */
 export async function requestPasswordReset(email) {
-  try {
-    const response = await fetch(`${API_BASE}/password-reset`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send reset email');
-      }
-      return data;
-    }
-  } catch (err) {
-    if (err.message && !err.message.includes('JSON') && !err.message.includes('fetch')) {
-      throw err;
-    }
+  const trimmedEmail = email ? email.trim().toLowerCase() : '';
+  if (!trimmedEmail) {
+    throw new Error('Please enter a valid email address.');
   }
 
-  // Local fallback (works in standalone simulation mode)
+  // Lookup user name from database if available
+  let userName = "User";
+  try {
+    const { data: users } = await supabase.from('users').select('*');
+    const matchedUser = (users || []).find(u => u.email?.trim().toLowerCase() === trimmedEmail);
+    if (matchedUser && matchedUser.name) {
+      userName = matchedUser.name;
+    }
+  } catch {
+    // Non-blocking
+  }
+
   const token = generateToken();
   const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
 
-  // Store in password_resets table
-  await supabase.from('password_resets').delete().eq('email', email.toLowerCase());
-  await supabase.from('password_resets').insert([{
-    id: 'pr_' + Date.now(),
-    email: email.toLowerCase(),
-    token,
-    token_hash: token,
-    code: Math.floor(100000 + Math.random() * 900000).toString(),
-    expires_at: expiresAt,
-    used: false,
-    created_at: new Date().toISOString()
-  }]);
+  // Store in password_resets table in Supabase
+  try {
+    await supabase.from('password_resets').delete().eq('email', trimmedEmail);
+    await supabase.from('password_resets').insert([{
+      id: 'pr_' + Date.now(),
+      email: trimmedEmail,
+      token,
+      token_hash: token,
+      code: Math.floor(100000 + Math.random() * 900000).toString(),
+      expires_at: expiresAt,
+      used: false,
+      created_at: new Date().toISOString()
+    }]);
+  } catch (err) {
+    console.warn('[Sandbox] Could not write to Supabase password_resets table:', err);
+  }
 
   const resetLink = `${window.location.origin}/?token=${token}`;
-  console.info(`[Demo Password Reset] Token generated for ${email}: ${resetLink}`);
+
+  // Store inside Sandbox Mailbox in localStorage
+  const sandboxEmail = {
+    id: 'mail_' + Date.now(),
+    to: trimmedEmail,
+    userName,
+    subject: '🔒 Reset your Secure Attendance Password',
+    resetLink,
+    token,
+    sentAt: Date.now()
+  };
+
+  try {
+    const raw = localStorage.getItem('sat_sandbox_emails');
+    const existing = raw ? JSON.parse(raw) : [];
+    const updated = [sandboxEmail, ...existing.slice(0, 19)];
+    localStorage.setItem('sat_sandbox_emails', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('sat_sandbox_email', { detail: sandboxEmail }));
+  } catch {
+    // Non-blocking
+  }
+
+  console.info(`[Sandbox Email Delivered] Recipient: ${trimmedEmail} | Link: ${resetLink}`);
 
   return {
     success: true,
-    message: 'If an account exists, a reset link has been generated.',
+    message: `Password reset link delivered to Sandbox Mailbox for ${trimmedEmail}.`,
     resetLink,
-    token
+    token,
+    userName,
+    email: trimmedEmail
   };
 }
 

@@ -1,14 +1,31 @@
 import { useState, useEffect } from "react";
 import { getSimulationState, saveSimulationState, QR_WINDOW_MS } from "../state/db";
-import { Terminal, Shield, Cpu, RefreshCw, X, Radio } from "lucide-react";
+import { Terminal, Shield, Cpu, RefreshCw, X, Radio, Mail, ExternalLink, Trash2 } from "lucide-react";
 
 export default function SimulationPanel({ onUpdate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [clientIp, setClientIp] = useState("192.168.1.45");
   const [timeOffset, setTimeOffset] = useState(0);
   const [activeSessionToken, setActiveSessionToken] = useState("");
-
   const [spoofFingerprint, setSpoofFingerprint] = useState(false);
+  const [sandboxEmails, setSandboxEmails] = useState(() => {
+    try {
+      const raw = localStorage.getItem("sat_sandbox_emails");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleEmail = (e) => {
+      if (e.detail) {
+        setSandboxEmails(prev => [e.detail, ...prev.filter(m => m.id !== e.detail.id).slice(0, 19)]);
+      }
+    };
+    window.addEventListener("sat_sandbox_email", handleEmail);
+    return () => window.removeEventListener("sat_sandbox_email", handleEmail);
+  }, []);
 
   useEffect(() => {
     const sim = getSimulationState();
@@ -69,6 +86,11 @@ export default function SimulationPanel({ onUpdate }) {
       >
         <Terminal className="h-5 w-5 animate-pulse" />
         <span className="font-semibold text-sm">Simulation Panel</span>
+        {sandboxEmails.length > 0 && (
+          <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-400 text-slate-950 font-bold rounded-full">
+            {sandboxEmails.length}
+          </span>
+        )}
       </button>
 
       {/* Sidebar Panel */}
@@ -242,6 +264,57 @@ export default function SimulationPanel({ onUpdate }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* 5. Email Sandbox (Mail Catcher) */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" /> Email Sandbox ({sandboxEmails.length})
+              </label>
+              {sandboxEmails.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem("sat_sandbox_emails");
+                    setSandboxEmails([]);
+                  }}
+                  className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="h-3 w-3" /> Clear
+                </button>
+              )}
+            </div>
+
+            {sandboxEmails.length === 0 ? (
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg text-[11px] text-slate-500 text-center">
+                No simulated emails caught yet. Request a password reset to see it captured here!
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {sandboxEmails.map((mail) => (
+                  <div
+                    key={mail.id || mail.token}
+                    className="p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs space-y-1.5 hover:border-emerald-500/40 transition"
+                  >
+                    <div className="flex justify-between items-start text-[10px]">
+                      <span className="font-semibold text-emerald-400 truncate max-w-[170px]">{mail.to}</span>
+                      <span className="text-slate-500 font-mono text-[9px]">
+                        {new Date(mail.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 line-clamp-1">{mail.subject}</div>
+                    <a
+                      href={mail.resetLink}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:underline pt-0.5"
+                    >
+                      <span>Open Reset Link</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
