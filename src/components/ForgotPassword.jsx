@@ -6,7 +6,6 @@ import { ShieldAlert, Key, Mail, Loader2, ArrowLeft, MailCheck } from "lucide-re
 export default function ForgotPassword({ onBack }) {
   const [step, setStep] = useState("request"); // request | verify
   const [email, setEmail] = useState("");
-  const [resetLink, setResetLink] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,7 +49,7 @@ export default function ForgotPassword({ onBack }) {
                 Forgot Password
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Enter your email to receive a secure reset link (Sandbox Mailbox)
+                Enter your registered email address to receive a password reset link
               </p>
             </div>
 
@@ -91,7 +90,7 @@ export default function ForgotPassword({ onBack }) {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Preparing Sandbox Link...
+                    <Loader2 className="h-4 w-4 animate-spin" /> Sending Reset Link...
                   </>
                 ) : (
                   "Send Reset Link"

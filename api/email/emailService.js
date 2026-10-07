@@ -1,4 +1,4 @@
-// Server-side Email Service using Resend and SMTP (Nodemailer)
+// Server-side Email Service using direct Gmail SMTP and optional Resend
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { passwordResetTemplate, emailVerificationTemplate, welcomeTemplate } from '../templates/index.js';
@@ -8,95 +8,112 @@ const defaultKey = Buffer.from('cmVfQmZneFhCVUxfR2VmVko3ZzRzOGZWUnhOZkF4TEVDNnRI
 const resendApiKey = process.env.RESEND_API_KEY || defaultKey;
 const resend = new Resend(resendApiKey);
 
-// Optional SMTP (e.g. Gmail App Password for sending to ANY email without custom domain)
+// Gmail SMTP configuration (App Password for direct delivery to EVERY user's email)
 const defaultSmtpUser = 'tusharsahu1511@gmail.com';
 const defaultSmtpPass = Buffer.from('aHRjaW9raW5hZmpjeGpzd3==', 'base64').toString('utf8'); // App password: htci okin afjc xjsw
 const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || defaultSmtpUser;
 const smtpPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || defaultSmtpPass).replace(/\s+/g, '');
-let smtpTransporter = null;
-if (smtpUser && smtpPass) {
-  smtpTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: smtpUser, pass: smtpPass }
-  });
-}
 
 // Email configuration
 const EMAIL_CONFIG = {
-  from: process.env.EMAIL_FROM || (smtpUser ? `Secure Attendance <${smtpUser}>` : 'onboarding@resend.dev'),
   appName: process.env.EMAIL_APP_NAME || 'Secure Attendance',
   appUrl: process.env.EMAIL_APP_URL || 'https://attendance-jet-beta.vercel.app',
 };
 
 /**
- * Send an email using SMTP or Resend
+ * Send an email directly to the recipient's mail address
+ * Uses Gmail SMTP with forced IPv4 (Port 465 SSL, fallback Port 587 TLS) for serverless compatibility
  */
 async function sendEmail({ to, subject, html, text }) {
-  // 1. If SMTP is configured, use it (allows delivering to ANY email in the world)
-  if (smtpTransporter) {
+  const recipient = (to || '').trim();
+  if (!recipient) {
+    throw new Error('Recipient email is required.');
+  }
+
+  const fromSender = `"${EMAIL_CONFIG.appName}" <${smtpUser}>`;
+  let lastError = null;
+
+  // 1. Primary: SMTP via Port 465 (SSL) with forced IPv4 (vital for Vercel/AWS serverless)
+  if (smtpUser && smtpPass) {
     try {
-      const info = await smtpTransporter.sendMail({
-        from: EMAIL_CONFIG.from,
-        to,
+      const transporter465 = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: smtpUser, pass: smtpPass },
+        family: 4,
+        pool: false,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+      });
+
+      const info = await transporter465.sendMail({
+        from: fromSender,
+        to: recipient,
         subject,
         html,
         text,
       });
-      console.log(`[SMTP Sent] Message ID: ${info.messageId} to ${to}`);
-      return { success: true, data: info };
-    } catch (smtpErr) {
-      console.error('SMTP error, falling back to Resend:', smtpErr);
-    }
-  }
-
-  // 2. Resend dispatcher
-  try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_CONFIG.from,
-      to: [to],
-      subject,
-      html,
-      text,
-    });
-
-    if (error) {
-      // Check if Resend blocked due to unverified domain sandbox restriction
-      if (error.statusCode === 403 || error.message?.includes('testing emails')) {
-        console.warn(`[Resend Sandbox Blocked] Recipient ${to} is external. Forwarding to verified owner (tusharsahu1511@gmail.com)...`);
-        const forwardResult = await resend.emails.send({
-          from: EMAIL_CONFIG.from,
-          to: ['tusharsahu1511@gmail.com'],
-          subject: `[For: ${to}] ${subject}`,
-          html: `<div style="background:#fef3c7;border:1px solid #f59e0b;padding:12px;border-radius:8px;margin-bottom:16px;font-family:sans-serif;font-size:13px;color:#92400e;">
-            <strong>⚠️ Resend Test Sandbox Notice:</strong><br/>
-            This reset email was requested for <strong>${to}</strong>. Delivered to account owner (tusharsahu1511@gmail.com) because a custom domain has not yet been verified at resend.com/domains.
-          </div>` + html,
-          text: `[Requested for: ${to}]\n\n` + text,
-        });
-        return { success: true, forwarded: true, data: forwardResult.data };
-      }
-      throw new Error(`Failed to send email: ${error.message}`);
+      console.log(`[SMTP 465 Sent] to ${recipient}, Message ID: ${info.messageId}`);
+      return { success: true, provider: 'smtp-465', data: info };
+    } catch (err465) {
+      console.warn(`[SMTP 465 Warning] Delivery to ${recipient} failed: ${err465.message}. Retrying via port 587...`);
     }
 
-    return { success: true, data };
-  } catch (err) {
-    // If err is 403 sandbox block, also forward
-    if (err.statusCode === 403 || err.message?.includes('testing emails')) {
-      const forwardResult = await resend.emails.send({
-        from: EMAIL_CONFIG.from,
-        to: ['tusharsahu1511@gmail.com'],
-        subject: `[For: ${to}] ${subject}`,
-        html: `<div style="background:#fef3c7;border:1px solid #f59e0b;padding:12px;border-radius:8px;margin-bottom:16px;font-family:sans-serif;font-size:13px;color:#92400e;">
-          <strong>⚠️ Resend Test Sandbox Notice:</strong><br/>
-          This reset email was requested for <strong>${to}</strong>. Delivered to account owner (tusharsahu1511@gmail.com) because a custom domain has not yet been verified at resend.com/domains.
-        </div>` + html,
-        text: `[Requested for: ${to}]\n\n` + text,
+    // 2. Secondary: SMTP via Port 587 (STARTTLS) with forced IPv4
+    try {
+      const transporter587 = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: { user: smtpUser, pass: smtpPass },
+        family: 4,
+        pool: false,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
       });
-      return { success: true, forwarded: true, data: forwardResult.data };
+
+      const info = await transporter587.sendMail({
+        from: fromSender,
+        to: recipient,
+        subject,
+        html,
+        text,
+      });
+      console.log(`[SMTP 587 Sent] to ${recipient}, Message ID: ${info.messageId}`);
+      return { success: true, provider: 'smtp-587', data: info };
+    } catch (err587) {
+      console.error(`[SMTP 587 Failed] ${err587.message}`);
+      lastError = err587;
     }
-    console.error('Email send error:', err);
-    throw err;
   }
+
+  // 3. Fallback: If recipient is verified on Resend or custom domain is enabled
+  if (recipient.toLowerCase() === 'tusharsahu1511@gmail.com' || process.env.RESEND_DOMAIN_VERIFIED === 'true') {
+    try {
+      const fromResend = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+      const { data, error } = await resend.emails.send({
+        from: fromResend,
+        to: [recipient],
+        subject,
+        html,
+        text,
+      });
+
+      if (!error) {
+        console.log(`[Resend Sent] to ${recipient}`);
+        return { success: true, provider: 'resend', data };
+      }
+      lastError = error;
+    } catch (resendErr) {
+      lastError = resendErr;
+    }
+  }
+
+  throw new Error(`Failed to deliver email to ${recipient}: ${lastError?.message || 'SMTP service error'}`);
 }
 
 /**

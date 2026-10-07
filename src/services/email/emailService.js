@@ -3,24 +3,18 @@ import { supabase } from '../../state/supabaseClient';
 
 const API_BASE = '/api/email';
 
-function generateToken() {
-  return 'rst_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Math.random().toString(36).substring(2) + Date.now().toString(36));
-}
-
 /**
  * Request a password reset email delivered to real inbox
  * @param {string} email - User's email address
  * @returns {Promise<Object>} Response with success status and message
  */
 export async function requestPasswordReset(email) {
-  const trimmedEmail = email ? email.trim().toLowerCase() : '';
+  const trimmedEmail = email ? email.trim() : '';
   if (!trimmedEmail) {
     throw new Error('Please enter a valid email address.');
   }
 
-  // 1. Call serverless API to send real email via Resend
-  let apiSuccess = false;
-  let apiError = null;
+  let errorMsg;
 
   try {
     const response = await fetch('/api/email/password-reset', {
@@ -33,41 +27,19 @@ export async function requestPasswordReset(email) {
 
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.success) {
-      apiSuccess = true;
-    } else if (!response.ok) {
-      apiError = data.error || 'Failed to dispatch email';
-      console.warn('API returned error:', apiError);
+      return {
+        success: true,
+        message: data.message || `Password reset link sent to ${trimmedEmail}.`,
+        email: data.email || trimmedEmail
+      };
     }
+    errorMsg = data.error || `Unable to send reset email (Status: ${response.status}).`;
   } catch (err) {
     console.warn('Network call to email API failed:', err);
+    errorMsg = 'Network connection to reset service failed. Please check your internet connection.';
   }
 
-  // 2. Client-side database sync fallback if offline or API unreachable
-  if (!apiSuccess) {
-    const token = generateToken();
-    const expiresAt = Date.now() + 60 * 60 * 1000;
-    try {
-      await supabase.from('password_resets').delete().eq('email', trimmedEmail);
-      await supabase.from('password_resets').insert([{
-        id: 'pr_' + Date.now(),
-        email: trimmedEmail,
-        token,
-        token_hash: token,
-        code: Math.floor(100000 + Math.random() * 900000).toString(),
-        expires_at: expiresAt,
-        used: false,
-        created_at: new Date().toISOString()
-      }]);
-    } catch {
-      // Non-blocking
-    }
-  }
-
-  return {
-    success: true,
-    message: `A password reset email has been sent to ${trimmedEmail}.`,
-    email: trimmedEmail
-  };
+  throw new Error(errorMsg || 'Failed to dispatch reset email.');
 }
 
 /**
@@ -158,7 +130,7 @@ export async function validateResetToken(token) {
         return data;
       }
     }
-  } catch (err) {
+  } catch {
     // API request failed or timed out, proceed to client fallback
   }
 
@@ -178,7 +150,7 @@ export async function validateResetToken(token) {
       }
       return { valid: true, email: record.email };
     }
-  } catch (e) {
+  } catch {
     // Ignore schema cache or table missing error
   }
 
@@ -213,7 +185,7 @@ export async function completePasswordReset(token, newPassword) {
         return data;
       }
     }
-  } catch (err) {
+  } catch {
     // API failed, proceed to client fallback
   }
 
@@ -231,8 +203,8 @@ export async function completePasswordReset(token, newPassword) {
       const { data: user } = await supabase
         .from('users')
         .select('*')
-        .eq('email', record.email.toLowerCase())
-        .single();
+        .ilike('email', record.email.trim())
+        .maybeSingle();
 
       if (user) {
         await supabase.from('users').update({ password: newPassword }).eq('id', user.id);
@@ -240,7 +212,7 @@ export async function completePasswordReset(token, newPassword) {
       await supabase.from('password_resets').update({ used: true }).eq('id', record.id);
       return { success: true, message: 'Password reset successfully' };
     }
-  } catch (e) {
+  } catch {
     // Database table missing fallback
   }
 

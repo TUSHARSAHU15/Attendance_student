@@ -68,15 +68,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
     }
 
-    // Get user
+    // Get user (case-insensitive lookup)
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, name, email')
-      .eq('email', record.email)
-      .single();
+      .ilike('email', record.email.trim())
+      .maybeSingle();
 
     if (userError || !user) {
-      return res.status(200).json({ success: true, message: 'Password updated successfully (demo mode)' });
+      return res.status(404).json({ error: 'User account not found.' });
     }
 
     // Update password

@@ -53,28 +53,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    // Check if user exists (using service role to bypass RLS)
+    // Check if user exists (case-insensitive lookup)
     let user = null;
     if (supabase) {
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email')
-        .eq('email', email.toLowerCase())
-        .single();
+        .ilike('email', email.trim())
+        .maybeSingle();
 
       if (!error && data) {
         user = data;
       }
     }
 
-    // SECURITY: Always return success even if user doesn't exist
-    // This prevents email enumeration attacks
     if (!user) {
-      // Log for debugging (server-side only)
       console.log(`Password reset requested for non-existent email: ${email}`);
-      return res.status(200).json({ 
-        success: true, 
-        message: 'If an account exists, a reset email has been sent.' 
+      return res.status(404).json({ 
+        error: `No registered account found with email "${email.trim()}". Please enter your registered email address.` 
       });
     }
 
@@ -89,7 +85,7 @@ export default async function handler(req, res) {
       await supabase
         .from('password_resets')
         .delete()
-        .eq('email', email.toLowerCase());
+        .ilike('email', user.email);
 
       // Insert new token
       const resetId = 'rst_' + crypto.randomUUID().replace(/-/g, '');
@@ -97,7 +93,7 @@ export default async function handler(req, res) {
         .from('password_resets')
         .insert([{
           id: resetId,
-          email: email.toLowerCase(),
+          email: user.email,
           token: rawToken,
           token_hash: tokenHash,
           expires_at: expiresAt,
@@ -110,17 +106,19 @@ export default async function handler(req, res) {
       }
     }
 
-    // Send email
+    // Send email directly to the user's email address
+    let sendResult;
     try {
-      await sendPasswordResetEmail({
+      sendResult = await sendPasswordResetEmail({
         email: user.email,
         name: user.name,
         token: rawToken,
       });
     } catch (emailError) {
       console.error('Failed to send reset email:', emailError);
-      // Don't expose email failure to client
-      // Token is stored, user can retry
+      return res.status(500).json({ 
+        error: `Could not send reset email to ${user.email}: ${emailError.message || 'SMTP service error'}. Please try again.` 
+      });
     }
 
     // Log audit event
@@ -130,13 +128,14 @@ export default async function handler(req, res) {
         timestamp: Date.now(),
         level: 'INFO',
         message: 'Password Reset Requested',
-        details: `Email sent to ${user.email} (${user.name})`,
+        details: `Reset link sent directly to ${user.email} (${user.name}) via ${sendResult?.provider || 'SMTP'}`,
       }]);
     }
 
     return res.status(200).json({ 
       success: true, 
-      message: 'If an account exists, a reset email has been sent.' 
+      message: `Password reset email sent directly to ${user.email}.`,
+      email: user.email
     });
 
   } catch (error) {

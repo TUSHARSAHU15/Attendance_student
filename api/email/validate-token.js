@@ -72,12 +72,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get user info
+    // Get user info (case-insensitive)
     const { data: user } = await supabase
       .from('users')
       .select('id, name, email')
-      .eq('email', record.email)
-      .single();
+      .ilike('email', record.email.trim())
+      .maybeSingle();
 
     if (!user) {
       return res.status(400).json({ 
