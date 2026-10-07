@@ -9,8 +9,10 @@ import crypto from 'crypto';
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vkeipkzszhfxkvtukypp.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_lINMUTnM7Zo4KbxPDYILmA_zDzqc6GM';
 
+if (!globalThis.WebSocket) globalThis.WebSocket = class {};
+
 const supabase = supabaseUrl && supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
   : null;
 
 /**

@@ -2,7 +2,7 @@
 // POST /api/email/welcome
 // Body: { email: string, name: string }
 
-import { sendWelcomeEmail } from './emailService';
+import { sendWelcomeEmail } from './emailService.js';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -10,8 +10,10 @@ import crypto from 'crypto';
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+if (!globalThis.WebSocket) globalThis.WebSocket = class {};
+
 const supabase = supabaseUrl && supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
   : null;
 
 export default async function handler(req, res) {

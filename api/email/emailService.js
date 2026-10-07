@@ -1,6 +1,6 @@
 // Server-side Email Service using Resend
 import { Resend } from 'resend';
-import { passwordResetTemplate, emailVerificationTemplate, welcomeTemplate } from '../templates';
+import { passwordResetTemplate, emailVerificationTemplate, welcomeTemplate } from '../templates/index.js';
 
 // Initialize Resend client with API key
 const defaultKey = Buffer.from('cmVfQmZneFhCVUxfR2VmVko3ZzRzOGZWUnhOZkF4TEVDNnRI', 'base64').toString('utf8');
