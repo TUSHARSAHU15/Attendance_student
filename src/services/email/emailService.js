@@ -18,10 +18,13 @@ export async function requestPasswordReset(email) {
     throw new Error('Please enter a valid email address.');
   }
 
-  // Lookup user name from database if available
+  // Lookup user name from database if available (with 2s timeout)
   let userName = "User";
   try {
-    const { data: users } = await supabase.from('users').select('*');
+    const { data: users } = await Promise.race([
+      supabase.from('users').select('*'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+    ]);
     const matchedUser = (users || []).find(u => u.email?.trim().toLowerCase() === trimmedEmail);
     if (matchedUser && matchedUser.name) {
       userName = matchedUser.name;
@@ -33,19 +36,24 @@ export async function requestPasswordReset(email) {
   const token = generateToken();
   const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
 
-  // Store in password_resets table in Supabase
+  // Store in password_resets table in Supabase (with 2s timeout)
   try {
-    await supabase.from('password_resets').delete().eq('email', trimmedEmail);
-    await supabase.from('password_resets').insert([{
-      id: 'pr_' + Date.now(),
-      email: trimmedEmail,
-      token,
-      token_hash: token,
-      code: Math.floor(100000 + Math.random() * 900000).toString(),
-      expires_at: expiresAt,
-      used: false,
-      created_at: new Date().toISOString()
-    }]);
+    await Promise.race([
+      (async () => {
+        await supabase.from('password_resets').delete().eq('email', trimmedEmail);
+        await supabase.from('password_resets').insert([{
+          id: 'pr_' + Date.now(),
+          email: trimmedEmail,
+          token,
+          token_hash: token,
+          code: Math.floor(100000 + Math.random() * 900000).toString(),
+          expires_at: expiresAt,
+          used: false,
+          created_at: new Date().toISOString()
+        }]);
+      })(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+    ]);
   } catch (err) {
     console.warn('[Sandbox] Could not write to Supabase password_resets table:', err);
   }

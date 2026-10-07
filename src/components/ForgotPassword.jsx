@@ -1,7 +1,7 @@
 // ForgotPassword Component - Updated to support demo reset links and back navigation
 import { useState } from "react";
 import { requestPasswordReset } from "../services/email";
-import { ShieldAlert, Key, Mail, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { ShieldAlert, Key, Mail, Loader2, ArrowLeft, ExternalLink, Inbox, Copy, Check } from "lucide-react";
 
 export default function ForgotPassword({ onBack }) {
   const [step, setStep] = useState("request"); // request | verify
