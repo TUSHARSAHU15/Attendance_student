@@ -51,14 +51,10 @@ async function sendEmail({ to, subject, html, text }) {
       const info = await transporter465.sendMail({
         from: fromSender,
         to: recipient,
-        replyTo: smtpUser,
         subject,
         html,
         text,
-        priority: 'high',
-        headers: {
-          'X-Auto-Response-Suppress': 'OOF, AutoReply',
-        },
+        date: new Date(),
       });
       console.log(`[SMTP 465 Sent] to ${recipient}, Message ID: ${info.messageId}`);
       return { success: true, provider: 'smtp-465', data: info };
@@ -84,14 +80,10 @@ async function sendEmail({ to, subject, html, text }) {
       const info = await transporter587.sendMail({
         from: fromSender,
         to: recipient,
-        replyTo: smtpUser,
         subject,
         html,
         text,
-        priority: 'high',
-        headers: {
-          'X-Auto-Response-Suppress': 'OOF, AutoReply',
-        },
+        date: new Date(),
       });
       console.log(`[SMTP 587 Sent] to ${recipient}, Message ID: ${info.messageId}`);
       return { success: true, provider: 'smtp-587', data: info };

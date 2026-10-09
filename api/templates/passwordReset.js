@@ -38,22 +38,22 @@ export function passwordResetTemplate({ name, resetUrl, appName = "Secure Attend
             Reset Password
           </a>
         </div>
-        <p style="margin: 24px 0 6px 0; font-size: 13px; color: #64748b;">
-          If the button does not work, copy and paste this link into your browser:
+        <p style="margin: 20px 0 6px 0; font-size: 13px; color: #64748b;">
+          Or copy and paste this URL into your browser:
         </p>
-        <p style="margin: 0 0 20px 0; font-size: 12px; color: #0e5b9e; word-break: break-all; font-family: monospace; background-color: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
-          ${resetUrl}
+        <p style="margin: 0 0 20px 0; font-size: 12px; color: #0e5b9e; word-break: break-all;">
+          <a href="${resetUrl}" style="color: #0e5b9e; text-decoration: underline;">${resetUrl}</a>
         </p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-        <p style="margin: 0 0 6px 0; font-size: 13px; color: #64748b;">
-          <strong>Security note:</strong> This link is valid for 1 hour and can only be used once. If you did not request a password reset, you can safely ignore this email.
+        <p style="margin: 0; font-size: 13px; color: #64748b;">
+          This link will expire in 1 hour. If you did not make this request, you can safely ignore this email.
         </p>
       </td>
     </tr>
     <tr>
       <td style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
         <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-          © ${new Date().getFullYear()} ${appName}. Automated service notification.
+          © ${new Date().getFullYear()} ${appName}. All rights reserved.
         </p>
       </td>
     </tr>
