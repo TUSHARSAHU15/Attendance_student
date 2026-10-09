@@ -9,8 +9,8 @@ const resendApiKey = process.env.RESEND_API_KEY || defaultKey;
 const resend = new Resend(resendApiKey);
 
 // Gmail SMTP configuration (App Password for direct delivery to EVERY user's email)
-const defaultSmtpUser = 'tusharsahu1511@gmail.com';
-const defaultSmtpPass = Buffer.from('aHRjaW9raW5hZmpjeGpzd3==', 'base64').toString('utf8'); // App password: htci okin afjc xjsw
+const defaultSmtpUser = 'securedattendance@gmail.com';
+const defaultSmtpPass = Buffer.from('aXhsbHdkcWp2d2VhZ3lycw==', 'base64').toString('utf8'); // App password: ixll wdqj vwea gyrs
 const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || defaultSmtpUser;
 const smtpPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || defaultSmtpPass).replace(/\s+/g, '');
 
@@ -102,7 +102,7 @@ async function sendEmail({ to, subject, html, text }) {
   }
 
   // 3. Fallback: If recipient is verified on Resend or custom domain is enabled
-  if (recipient.toLowerCase() === 'tusharsahu1511@gmail.com' || process.env.RESEND_DOMAIN_VERIFIED === 'true') {
+  if (recipient.toLowerCase() === 'securedattendance@gmail.com' || process.env.RESEND_DOMAIN_VERIFIED === 'true') {
     try {
       const fromResend = process.env.EMAIL_FROM || 'onboarding@resend.dev';
       const { data, error } = await resend.emails.send({
